@@ -1,0 +1,26 @@
+{
+    "name": "freestream/websocket",
+    "description": "Laravel WebSocket server based on Ratchet",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Anton Samuelsson",
+            "email": "samuelsson.anton@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0",
+        "cboden/Ratchet": "0.3.*"
+    },
+    "autoload": {
+        "classmap": [
+            "src/Freestream/WebSocket/helper",
+            "src/Freestream/WebSocket/model",
+            "src/Freestream/WebSocket/command"
+        ],
+        "psr-0": {
+            "Freestream\\WebSocket\\": "src/"
+        }
+    },
+    "minimum-stability": "stable"
+}
