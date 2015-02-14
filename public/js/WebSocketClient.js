@@ -65,7 +65,7 @@ var WebSocketClient = function(options) {
  * Initial configuration.
  */
 WebSocketClient.prototype.init = function() {
-    this.connection = this.setConnection(new WebSocket('ws://' + this.options.server + ':' + this.options.port));
+    this.connection = this.setConnection(new WebSocket('ws://' + this.options.server + ':' + this.options.port + '?sessionId=' + this.options.sessionId));
 
     this.connection.WebSocketClient = this;
 };

@@ -48,9 +48,9 @@ class WebSocketEventListener
     /**
      * Map from objects.
      *
-     * @var \SplObjectStorage
+     * @var array
      */
-    protected $_clients;
+    protected $_clients = [];
 
     /**
      * Initial configuration.
@@ -58,7 +58,6 @@ class WebSocketEventListener
     public function __construct()
     {
         $this->_prefix   = WebSocketServiceProvider::SERVICE_PREFIX;
-        $this->_clients  = new \SplObjectStorage;
     }
 
     /**
@@ -68,6 +67,13 @@ class WebSocketEventListener
      */
     public function onOpen(ConnectionInterface $conn)
     {
+        $query      = $conn->WebSocket->request->getQuery()->urlEncode();
+        $sessionId  = @$query['sessionId'];
+
+        if (!$sessionId || array_key_exists($sessionId, $this->_clients)) {
+            $conn->close();
+        }
+
         $connection = new WebSocketConnectionWrapper($conn);
 
         $event = Event::fire(
@@ -76,12 +82,13 @@ class WebSocketEventListener
                 'connection'    => $connection,
                 'clients'       => $this->_clients,
                 'listener'      => $this,
+                'sessionId'     => $sessionId,
             )
         );
 
         if ($event) {
             echo "Connection Established! \n";
-            $this->_clients->attach($conn);
+            $this->_clients[$sessionId] = $connection;
 
             Event::fire(
                 "{$this->_prefix}.Listener.Open.After",
@@ -89,6 +96,7 @@ class WebSocketEventListener
                     'connection'    => $connection,
                     'clients'       => $this->_clients,
                     'listener'      => $this,
+                    'sessionId'     => $sessionId,
                 )
             );
         }
@@ -102,7 +110,10 @@ class WebSocketEventListener
      */
     public function onMessage(ConnectionInterface $from, $msg)
     {
-        $connection = new WebSocketConnectionWrapper($from, $msg);
+        $query      = $from->WebSocket->request->getQuery()->urlEncode();
+        $sessionId  = @$query['sessionId'];
+
+        $connection = $this->_clients[$sessionId];
 
         Event::fire(
             "{$this->_prefix}.Listener.Message",
@@ -111,6 +122,7 @@ class WebSocketEventListener
                 'raw'       => $msg,
                 'clients'   => $this->_clients,
                 'listener'  => $this,
+                'sessionId'     => $sessionId,
             ]
         );
     }
@@ -122,7 +134,10 @@ class WebSocketEventListener
      */
     public function onClose(ConnectionInterface $conn)
     {
-        $connection = new WebSocketConnectionWrapper($conn);
+        $query      = $conn->WebSocket->request->getQuery()->urlEncode();
+        $sessionId  = @$query['sessionId'];
+
+        $connection = $this->_clients[$sessionId];
 
         $event = Event::fire(
             "{$this->_prefix}.Listener.Close",
@@ -130,11 +145,14 @@ class WebSocketEventListener
                 'connection'    => $connection,
                 'clients'       => $this->_clients,
                 'listener'      => $this,
+                'sessionId'     => $sessionId,
             ]
         );
 
+        unset($this->_clients[$sessionId]);
+
         if ($event) {
-            $this->clients->detach($conn);
+            unset($this->_clients[$sessionId]);
             echo "Connection {$conn->resourceId} has disconnected\n";
         }
     }
@@ -147,7 +165,11 @@ class WebSocketEventListener
      */
     public function onError(ConnectionInterface $conn, \Exception $exception)
     {
-        $connection = new WebSocketConnectionWrapper($conn);
+        $query      = $conn->WebSocket->request->getQuery()->urlEncode();
+        $sessionId  = @$query['sessionId'];
+
+        $connection = $this->_clients[$sessionId];
+
 
         Event::fire(
             "{$this->_prefix}.Listener.Error",
@@ -156,10 +178,12 @@ class WebSocketEventListener
                 'clients'       => $this->_clients,
                 'listener'      => $this,
                 'exception'     => $exception,
+                'sessionId'     => $sessionId,
             ]
         );
 
         echo "An error has occurred: {$exception->getMessage()}\n";
+
         $conn->close();
     }
 }
