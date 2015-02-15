@@ -26,8 +26,9 @@
 <?php namespace Freestream\WebSocket;
 
 use Ratchet\Server\IoServer;
-use Ratchet\WebSocket\WsServer;
 use Ratchet\Http\HttpServer;
+use Ratchet\WebSocket\WsServer;
+use Illuminate\Support\Facades\Event;
 
 /**
  * WebSocket server class.
@@ -67,6 +68,12 @@ class WebSocketServer
      */
     public function run()
     {
+        $prefix = WebSocketServiceProvider::SERVICE_PREFIX;
+
+        $event = Event::fire(
+            "{$prefix}.Start"
+        );
+
         $this->server->run();
 
         return $this;
