@@ -217,8 +217,6 @@ WebSocketClient.prototype.message = function(event, data) {
             message: data || [],
         };
 
-        console.log(json);
-
         this.connection.send(JSON.stringify(json));
     }
 };

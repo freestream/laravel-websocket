@@ -71,12 +71,12 @@ class WebSocketEventListener
         try {
             $event = Event::fire(
                 "{$this->_prefix}.Listener.Open",
-                array(
+                [
                     'connection'    => $connection,
                     'message'       => $this->_getMessageObject(),
                     'clients'       => $this->_clients,
                     'listener'      => $this,
-                )
+                ]
             );
         } catch (Exception $e) {
             $event = true;
@@ -88,12 +88,12 @@ class WebSocketEventListener
 
             Event::fire(
                 "{$this->_prefix}.Listener.Open.After",
-                array(
+                [
                     'connection'    => $connection,
                     'message'       => $this->_getMessageObject(),
                     'clients'       => $this->_clients,
                     'listener'      => $this,
-                )
+                ]
             );
         }
     }
@@ -140,7 +140,7 @@ class WebSocketEventListener
         }
 
         if ($event !== false) {
-            $this->clients->detach($connection);
+            $this->_clients->detach($connection);
             echo "Connection {$connection->resourceId} has disconnected\n";
         }
     }
