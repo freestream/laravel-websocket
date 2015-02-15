@@ -46,57 +46,53 @@ class WebSocketEventListener
     protected $_prefix;
 
     /**
-     * Map from objects.
+     * Map of objects.
      *
-     * @var array
+     * @var \SplObjectStorage
      */
-    protected $_clients = [];
+    protected $_clients;
 
     /**
      * Initial configuration.
      */
     public function __construct()
     {
-        $this->_prefix   = WebSocketServiceProvider::SERVICE_PREFIX;
+        $this->_prefix      = WebSocketServiceProvider::SERVICE_PREFIX;
+        $this->_clients     = new \SplObjectStorage;
     }
 
     /**
      * Fire a event when a new connection has been opened.
      *
-     * @param  ConnectionInterface $conn
+     * @param  ConnectionInterface $connection
      */
-    public function onOpen(ConnectionInterface $conn)
+    public function onOpen(ConnectionInterface $connection)
     {
-        $query      = $conn->WebSocket->request->getQuery()->urlEncode();
-        $sessionId  = @$query['sessionId'];
-
-        if (!$sessionId || array_key_exists($sessionId, $this->_clients)) {
-            $conn->close();
+        try {
+            $event = Event::fire(
+                "{$this->_prefix}.Listener.Open",
+                array(
+                    'connection'    => $connection,
+                    'message'       => $this->_getMessageObject(),
+                    'clients'       => $this->_clients,
+                    'listener'      => $this,
+                )
+            );
+        } catch (Exception $e) {
+            $event = true;
         }
 
-        $connection = new WebSocketConnectionWrapper($conn);
-
-        $event = Event::fire(
-            "{$this->_prefix}.Listener.Open",
-            array(
-                'connection'    => $connection,
-                'clients'       => $this->_clients,
-                'listener'      => $this,
-                'sessionId'     => $sessionId,
-            )
-        );
-
-        if ($event) {
+        if ($event !== false) {
             echo "Connection Established! \n";
-            $this->_clients[$sessionId] = $connection;
+            $this->_clients->attach($connection);
 
             Event::fire(
                 "{$this->_prefix}.Listener.Open.After",
                 array(
                     'connection'    => $connection,
+                    'message'       => $this->_getMessageObject(),
                     'clients'       => $this->_clients,
                     'listener'      => $this,
-                    'sessionId'     => $sessionId,
                 )
             );
         }
@@ -110,19 +106,14 @@ class WebSocketEventListener
      */
     public function onMessage(ConnectionInterface $from, $msg)
     {
-        $query      = $from->WebSocket->request->getQuery()->urlEncode();
-        $sessionId  = @$query['sessionId'];
-
-        $connection = $this->_clients[$sessionId];
-
         Event::fire(
             "{$this->_prefix}.Listener.Message",
             [
-                'from'      => $connection,
+                'from'      => $from,
+                'message'   => $this->_getMessageObject($msg),
                 'raw'       => $msg,
                 'clients'   => $this->_clients,
                 'listener'  => $this,
-                'sessionId'     => $sessionId,
             ]
         );
     }
@@ -130,60 +121,68 @@ class WebSocketEventListener
     /**
      * Fire a event when a connection has been closed.
      *
-     * @param  ConnectionInterface $conn
+     * @param  ConnectionInterface $connection
      */
-    public function onClose(ConnectionInterface $conn)
+    public function onClose(ConnectionInterface $connection)
     {
-        $query      = $conn->WebSocket->request->getQuery()->urlEncode();
-        $sessionId  = @$query['sessionId'];
+        try {
+            $event = Event::fire(
+                "{$this->_prefix}.Listener.Close",
+                [
+                    'connection'    => $connection,
+                    'message'       => $this->_getMessageObject(),
+                    'clients'       => $this->_clients,
+                    'listener'      => $this,
+                ]
+            );
+        } catch (Exception $e) {
+            $event = true;
+        }
 
-        $connection = $this->_clients[$sessionId];
-
-        $event = Event::fire(
-            "{$this->_prefix}.Listener.Close",
-            [
-                'connection'    => $connection,
-                'clients'       => $this->_clients,
-                'listener'      => $this,
-                'sessionId'     => $sessionId,
-            ]
-        );
-
-        unset($this->_clients[$sessionId]);
-
-        if ($event) {
-            unset($this->_clients[$sessionId]);
-            echo "Connection {$conn->resourceId} has disconnected\n";
+        if ($event !== false) {
+            $this->clients->detach($connection);
+            echo "Connection {$connection->resourceId} has disconnected\n";
         }
     }
 
     /**
      * Fire a event when a error has occurred.
      *
-     * @param  ConnectionInterface $conn
+     * @param  ConnectionInterface $connection
      * @param  \Exception          $exception
      */
-    public function onError(ConnectionInterface $conn, \Exception $exception)
+    public function onError(ConnectionInterface $connection, \Exception $exception)
     {
-        $query      = $conn->WebSocket->request->getQuery()->urlEncode();
-        $sessionId  = @$query['sessionId'];
-
-        $connection = $this->_clients[$sessionId];
-
-
-        Event::fire(
-            "{$this->_prefix}.Listener.Error",
-            [
-                'connection'    => $connection,
-                'clients'       => $this->_clients,
-                'listener'      => $this,
-                'exception'     => $exception,
-                'sessionId'     => $sessionId,
-            ]
-        );
+        try {
+            Event::fire(
+                "{$this->_prefix}.Listener.Error",
+                [
+                    'connection'    => $connection,
+                    'message'       => $this->_getMessageObject(),
+                    'clients'       => $this->_clients,
+                    'listener'      => $this,
+                    'exception'     => $exception,
+                ]
+            );
+        } catch (Exception $e) {
+        }
 
         echo "An error has occurred: {$exception->getMessage()}\n";
 
-        $conn->close();
+        $connection->close();
+    }
+
+    /**
+     * Validates and converts JSON object into a array and generates and returns
+     * a response container.
+     *
+     * @param  string $message
+     *
+     * @return Freestream\WebSocket\WebSocketResponse
+     */
+    protected function _getMessageObject($message = '')
+    {
+        $message = Evaluate::jsonDecodeString($message);
+        return new WebSocketResponse($message);
     }
 }
