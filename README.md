@@ -22,7 +22,7 @@ Add `require` and `repositories` information in the projects `composer.json` fil
     ],
 ```
 
-Now its time to run `composer update` in your terminal.
+Now it's time to run `composer update` in your terminal.
 
 After the update is complete the  service provider needs to be registered in `app/config/app.php` inside the `providers` array:
 
@@ -31,23 +31,23 @@ After the update is complete the  service provider needs to be registered in `ap
 ```
 
 ## Server side configuration
-Run the following command in the projects root folder to startup the WebSocket server. By default the server will be run on port 8080 but by adding `--port=[number]` at the end of the command it is possible to change to any desired port.
+Run the following command in the project root folder to startup the WebSocket server. By default the server will be run on port 8080 but by adding `--port=[number]` at the end of the command it is possible to change to any desired port.
 
 ```php
 php artisan websocket:start
 ```
 
-This will startup a deamon service that will estsblish the WebSocket server. To make sure that command is constantly running it is recommended to use [Supervisord](http://supervisord.org/) to supervice the deamon.
+This will startup a daemon service that will estsblish the WebSocket server. To make sure that command is constantly running it is recommended to use [Supervisord](http://supervisord.org/) to run the process.
 
 ## Client side listener
 
-This service comes included with the nessesary JavaScripts. To include these into the projects assets folder run the following command.
+This service comes included with the necsesary JavaScript. To include these into the project assets folder run the following command.
 
 ```php
 php artisan asset:publish freestream/web-socket
 ```
 
-After that add thins line into the template file.
+After that add this line into the template file.
 
 ```php
 <script type="text/javascript" src="{{ URL::asset('packages/freestream/web-socket/js/WebSocketClient.js') }}"></script>
@@ -65,7 +65,7 @@ To estalish a WebSocket client add the following code.
 </script>
 ```
 
-The avilible configurations are:
+The availible configurations are:
 
 ```JavaScript
 debug       boolean     Enabled debug messages in browser console. Default is false.
@@ -76,7 +76,7 @@ sessionId   string      Session ID for the opened WebSocket. Default random inte
 reconnect   boolean     Should reconnect automatically if losing connection. Default true.
 ```
 
-Messages can be sent through the socket as soon as the connection is established. The first parameter is a event name that will be sent to the backend as a tracing event for easyer filtering. The second parameter is the message and can contain a string or a JSON.
+Messages can be sent through the socket as soon as the connection is established. The first parameter is an event name that will be sent to the backend as a tracing event for easier filtering. The second parameter is the message and can contain a string or JSON.
 
 ```JavaScript
 <script type="text/javascript">
@@ -84,7 +84,7 @@ Messages can be sent through the socket as soon as the connection is established
 </script>
 ```
 
-Messages that are sent back from the server to the client contains a JSON with two elements, `origData` and `data`. OrigData contains any data that have been sent as a message and the server has responded to and data contains the reponse data from the server.
+Messages that are sent back from the server to the client contains JSON with two elements, `origData` and `data`. OrigData contains any data that was sent as a message and the server has responded to, and data contains the reponse data from the server.
 
 ```JSON
 {
@@ -97,7 +97,7 @@ Messages that are sent back from the server to the client contains a JSON with t
 }
 ```
 
-Add Event Listensers to responed/listen to anything that happneds in the WebSocket.
+Add Event Listensers to respond/listen to anything that happens in the WebSocket.
 
 ```JavaScript
 document.addEventListener('Laravel.Freestream.WebSocket.Message.Received', function(event) {});
@@ -114,7 +114,7 @@ Events that will be fired is:
 
 ## Server side listener
 
-The server needs to be able to respond to any new connections or messages that are sent by the client. This is done by Laravels event listener. This can be setup in different ways but to recommented way is to use `events.php`.
+The server needs to be able to respond to any new connections or messages that are sent by the client. This is done by Laravel's event listener. This can be setup in different ways. The recommended way is to use `events.php`.
 
 If `events.php` is not already in the 'app/' folder create the file and after that open up 'app/start/global.php' and make sure the follwoing line is in the end of the file.
 
